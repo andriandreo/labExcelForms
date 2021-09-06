@@ -15,4 +15,4 @@ You still need an Excel template to read and write the data.
 
 ## Installation:
 
-Just download the latest version and import the .bas module into your Excel .xlms file within the Microsoft Visual Basic Developer tool.
+Just download the latest version and import the .bas modules into your Excel .xlms file within the Microsoft Visual Basic Developer tool.
