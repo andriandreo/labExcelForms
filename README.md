@@ -1,6 +1,6 @@
 <h2 align="center">VBA Excel Calibration Test</h2>
 <p align="center">
-<i>VBA Macros for the calculation of transistor's figures of merit</i>
+<i>VBA Macros for the calculation of transistor figures of merit</i>
 <br>
 <br>
 <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
