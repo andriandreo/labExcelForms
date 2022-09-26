@@ -1,10 +1,10 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
-  - family-names: "Andrés Alberto"
-    given-names: "Andreo Acosta"
+  - family-names: "Andreo Acosta"
+    given-names: "Andrés Alberto"
     orcid: "https://orcid.org/0000-0002-5654-5187"
-title: "andriandreo/labExcelForms: CalTest v2.0"
-doi: 10.5281/zenodo.5472105
-version: v2.0
-date-released: 2021-09-06
+title: "andriandreo/labExcelForms: CalTest v3.0"
+doi: 10.5281/zenodo.5472104
+version: v3.0
+date-released: 2022-09-26
