@@ -1,9 +1,10 @@
 Attribute VB_Name = "calcModule"
+
 '=====================CREDITS======================'
 'AUTHOR: Andres Alberto Andreo Acosta'
 'GitHub: https://github.com/andriandreo'
-'DATE (DD/MM/YY): 26/05/22'
-'Version: v3.0'
+'DATE (DD/MM/YY): 27/09/22'
+'Version: v3.1'
 'LICENSE: MIT License'
 '================================================='
 
@@ -17,19 +18,49 @@ Sub CreateName()
         Set ws = ActiveSheet
 
             'Read the time between additions (each "?" cells)
-            addt = Worksheets(ActiveSheet.Name).Cells(1, 13)
+            addt = ActiveSheet.Cells(1, 13)
 
-        rStart = Worksheets(ActiveSheet.Name).Cells(1, 12) - addt ' "-addt" in order to capture before the first step
+        rStart = ActiveSheet.Cells(1, 12) - addt ' "-addt" in order to capture before the first step
         
         'As-measured Current:
         rname = Mid(ws.Name, 1, InStr(1, ws.Name, "(") - 1) & Mid(ws.Name, InStr(1, ws.Name, "(") + 1, 1)
-        wb.Worksheets(ws.Name).Names.Add Name:=rname, RefersTo:=Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(rStart, 3), Worksheets(ActiveSheet.Name).Cells(16000, 3)) ' Column#2 [A]; Column#3 [mA]
+        wb.Worksheets(ws.Name).Names.Add Name:=rname, RefersTo:=ActiveSheet.Range(ActiveSheet.Cells(rStart, 3), ActiveSheet.Cells(16000, 3)) ' Column#2 [A]; Column#3 [mA]
         
         'Baseline-substracted Current:
         rname = "d" & Mid(ws.Name, 1, InStr(1, ws.Name, "(") - 1) & Mid(ws.Name, InStr(1, ws.Name, "(") + 1, 1)
-        wb.Worksheets(ws.Name).Names.Add Name:=rname, RefersTo:=Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(rStart, 4), Worksheets(ActiveSheet.Name).Cells(16000, 4)) ' Column#3 [mA]; Column#4 dI [mA]
+        wb.Worksheets(ws.Name).Names.Add Name:=rname, RefersTo:=ActiveSheet.Range(ActiveSheet.Cells(rStart, 4), ActiveSheet.Cells(16000, 4)) ' Column#3 [mA]; Column#4 dI [mA]
 
 '=====================================================================
+
+'Ask for converting [A] to [mA] in results:
+uFlag = InputBox("Convert results from [A] to [mA] (y/n)?")
+If uFlag = "y" Or uFlag = "Y" Or uFlag = "Yes" Or uFlag = "yes" Or uFlag = "1" Or uFlag = "True" Then
+    iStep = Val(InputBox("What is the first readable step in the time trace? (1, 2, 3...):", "1st step?"))
+    
+    V = ActiveSheet.Cells(4, 12)
+    ActiveSheet.Cells(4, 12) = V * 1000
+    
+    i = iStep
+    While ActiveSheet.Cells(4 + i, 12) <> 0
+        V = ActiveSheet.Cells(4 + i, 12)
+        ActiveSheet.Cells(4 + i, 12) = V * 1000
+        i = i + 1
+    Wend
+End If
+
+'Loop for determine diffs' cutoff value and [mA] Current:
+ i = 2
+ While ActiveSheet.Cells(i, 2) <> 0
+  ActiveSheet.Cells(i, 3) = ActiveSheet.Cells(i, 2) * 1000 'Current [A] to [mA]
+  i = i + 1
+ Wend
+
+'Loop for determine Baseline-substracted Current [mA]:
+ i = 2
+ While ActiveSheet.Cells(i, 2) <> 0
+  ActiveSheet.Cells(i, 4) = ActiveSheet.Cells(i, 3) - ActiveSheet.Cells(4, 12)
+  i = i + 1
+ Wend
 
 End Sub
 
@@ -40,23 +71,23 @@ Sub RCalcId()
 j = 30 'Initialise reading variable (at a reasonable value where sweep started)
 
 'Read data from the recording form (Id-Vd)
-Dsteps = Worksheets(ActiveSheet.Name).Cells(2, 1) 'The number of Vd steps specified in the form
+Dsteps = ActiveSheet.Cells(2, 1) 'The number of Vd steps specified in the form
 For i = 1 To Dsteps
- Id1 = Worksheets(ActiveSheet.Name).Cells(j, 2)
- Id2 = Worksheets(ActiveSheet.Name).Cells(j + 1, 2)
+ Id1 = ActiveSheet.Cells(j, 2)
+ Id2 = ActiveSheet.Cells(j + 1, 2)
  diff = Abs(Id2 - Id1) 'Difference between previous and next current
  
  While diff < 0.0001 'While no step, continue reading
-  Id1 = Worksheets(ActiveSheet.Name).Cells(j, 2)
-  Id2 = Worksheets(ActiveSheet.Name).Cells(j + 1, 2)
+  Id1 = ActiveSheet.Cells(j, 2)
+  Id2 = ActiveSheet.Cells(j + 1, 2)
   diff = Abs(Id2 - Id1)
   j = j + 1
  Wend
  
  'Set the cells' range for calculating the average of currents:
- Set avRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(j - 21, 2), Worksheets(ActiveSheet.Name).Cells(j - 1, 2))
+ Set avRange = ActiveSheet.Range(ActiveSheet.Cells(j - 21, 2), ActiveSheet.Cells(j - 1, 2))
  'Write data to the plot cells:
- Worksheets(ActiveSheet.Name).Cells(17 + i, 5) = Application.WorksheetFunction.Average(avRange)
+ ActiveSheet.Cells(17 + i, 5) = Application.WorksheetFunction.Average(avRange)
  
  j = j + 30 'In order to ensure next step
  
@@ -73,10 +104,10 @@ Sub CCalcId()
 '=================================================================================
 
 'Determine the parameters as a function of the System State
-If Worksheets(ActiveSheet.Name).Cells(2, 13) = "QSS" Then 'Quasi Solid-State'
+If ActiveSheet.Cells(2, 13) = "QSS" Then 'Quasi Solid-State'
    Scoff = 0.3 'The cutoff correction factor for the steps
    Sstep = 53 'The increment in t for calculating the next step
-ElseIf Worksheets(ActiveSheet.Name).Cells(2, 13) = "LS" Then 'Liquid-State'
+ElseIf ActiveSheet.Cells(2, 13) = "LS" Then 'Liquid-State'
    Scoff = 0.1 'The cutoff correction factor for the steps
    Sstep = 23 'The increment in t for calculating the next step
 End If
@@ -89,17 +120,17 @@ End If
         Set ws = ActiveSheet
 
             'Read the time between additions (each "?" cells)
-            addt = Worksheets(ActiveSheet.Name).Cells(1, 13)
+            addt = ActiveSheet.Cells(1, 13)
 
-        rStart = Worksheets(ActiveSheet.Name).Cells(1, 12) - addt ' "-addt" in order to capture before the first step
+        rStart = ActiveSheet.Cells(1, 12) - addt ' "-addt" in order to capture before the first step
         
         'As-measured Current:
         rname = Mid(ws.Name, 1, InStr(1, ws.Name, "(") - 1) & Mid(ws.Name, InStr(1, ws.Name, "(") + 1, 1)
-        wb.Worksheets(ws.Name).Names.Add Name:=rname, RefersTo:=Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(rStart, 3), Worksheets(ActiveSheet.Name).Cells(16000, 3)) ' Column#2 [A]; Column#3 [mA]
+        wb.Worksheets(ws.Name).Names.Add Name:=rname, RefersTo:=ActiveSheet.Range(ActiveSheet.Cells(rStart, 3), ActiveSheet.Cells(16000, 3)) ' Column#2 [A]; Column#3 [mA]
         
         'Baseline-substracted Current:
         rname = "d" & Mid(ws.Name, 1, InStr(1, ws.Name, "(") - 1) & Mid(ws.Name, InStr(1, ws.Name, "(") + 1, 1)
-        wb.Worksheets(ws.Name).Names.Add Name:=rname, RefersTo:=Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(rStart, 4), Worksheets(ActiveSheet.Name).Cells(16000, 4)) ' Column#3 [mA]; Column#4 dI [mA]
+        wb.Worksheets(ws.Name).Names.Add Name:=rname, RefersTo:=ActiveSheet.Range(ActiveSheet.Cells(rStart, 4), ActiveSheet.Cells(16000, 4)) ' Column#3 [mA]; Column#4 dI [mA]
 '===============================================================================
 
 'As "non-visible" steps are not readable:
@@ -112,55 +143,55 @@ If spStep <> 0 Then
 End If
 
 'Read the time between additions (each "?" cells)
-addt = Worksheets(ActiveSheet.Name).Cells(1, 13)
+addt = ActiveSheet.Cells(1, 13)
 
 '=====================BASELINE CURRENT DETERMINATION========================
 'Calculate the average for the Io (stable current before the first addition)
- j = Worksheets(ActiveSheet.Name).Cells(1, 12) 'Set the variable at the time for the first addition
+ j = ActiveSheet.Cells(1, 12) 'Set the variable at the time for the first addition
  'Set the cells' range for calculating the average of currents:
-  Set avRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(j - 22, 2), Worksheets(ActiveSheet.Name).Cells(j - 2, 2))
+  Set avRange = ActiveSheet.Range(ActiveSheet.Cells(j - 22, 2), ActiveSheet.Cells(j - 2, 2))
  'Write data:
-  Worksheets(ActiveSheet.Name).Cells(4, 12) = Application.WorksheetFunction.Average(avRange) * 1000 ''*1000' to change A to mA
+  ActiveSheet.Cells(4, 12) = Application.WorksheetFunction.Average(avRange) * 1000 ''*1000' to change A to mA
 '===========================================================================
 
 '=====================SENS. CURRENT CALCULATION LOOP========================
 'k = iStep
 For k = iStep To 3 'In the case the initial steps correspond to the very first, the calculation for the subsequent may not be accurate
 'Because 1st step is not always readible
-j = Worksheets(ActiveSheet.Name).Cells(1, 12) + (k * addt - 20) 'Initialise reading variable (at a reasonable right before the next step)
+j = ActiveSheet.Cells(1, 12) + (k * addt - 20) 'Initialise reading variable (at a reasonable right before the next step)
 
 'Loop for determine diffs' cutoff value and [mA] Current:
  i = 2
- While Worksheets(ActiveSheet.Name).Cells(i, 2) <> 0
-  Worksheets(ActiveSheet.Name).Cells(i, 1) = Abs(Worksheets(ActiveSheet.Name).Cells(i, 2) - Worksheets(ActiveSheet.Name).Cells(i + 1, 2))
-  Worksheets(ActiveSheet.Name).Cells(i, 3) = Worksheets(ActiveSheet.Name).Cells(i, 2) * 1000 'Current [A] to [mA]
+ While ActiveSheet.Cells(i, 2) <> 0
+  ActiveSheet.Cells(i, 1) = Abs(ActiveSheet.Cells(i, 2) - ActiveSheet.Cells(i + 1, 2))
+  ActiveSheet.Cells(i, 3) = ActiveSheet.Cells(i, 2) * 1000 'Current [A] to [mA]
   i = i + 1
  Wend
 
  'Set the cells' range for calculating the cutoff value for the diffs:
- Set coffRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(j, 1), Worksheets(ActiveSheet.Name).Cells(j + (addt - 250), 1))
+ Set coffRange = ActiveSheet.Range(ActiveSheet.Cells(j, 1), ActiveSheet.Cells(j + (addt - 250), 1))
  cutoff = WorksheetFunction.Max(coffRange) - Scoff * (WorksheetFunction.Max(coffRange)) 'In order to reduce a little the max diff
  ActiveSheet.Columns(1).EntireColumn.ClearContents 'Clear the generated diffs column
 
     '=====================DEBUGGING=======================
     'Write cutoff value in the sheet (debugging)
-    Worksheets(ActiveSheet.Name).Cells(1, 1) = "Cutoff:"
-    Worksheets(ActiveSheet.Name).Cells(2, 1) = cutoff
+    ActiveSheet.Cells(1, 1) = "Cutoff:"
+    ActiveSheet.Cells(2, 1) = cutoff
     '=====================================================
 
 'Read data from the recording form (the active sheet)
 j = j + 6 'For getting closer to the 1st step
-nSteps = Worksheets(ActiveSheet.Name).Cells(2, 12) 'The number of additions specified in the form
+nSteps = ActiveSheet.Cells(2, 12) 'The number of additions specified in the form
 
 errflag = 0 'The flag to control the overflow error
 For i = k To nSteps
- Id1 = Worksheets(ActiveSheet.Name).Cells(j, 2)
- Id2 = Worksheets(ActiveSheet.Name).Cells(j + 1, 2)
+ Id1 = ActiveSheet.Cells(j, 2)
+ Id2 = ActiveSheet.Cells(j + 1, 2)
  diff = Abs(Id2 - Id1) 'Difference between previous and next current
 
  Do While diff < cutoff 'While no step, continue reading
-  Id1 = Worksheets(ActiveSheet.Name).Cells(j, 2)
-  Id2 = Worksheets(ActiveSheet.Name).Cells(j + 1, 2)
+  Id1 = ActiveSheet.Cells(j, 2)
+  Id2 = ActiveSheet.Cells(j + 1, 2)
   diff = Abs(Id2 - Id1)
   j = j + 1
   If j = 1000000 Then 'In the case the overflow error appears for the reading variable ("j") and the considered "cutoff"
@@ -172,9 +203,9 @@ For i = k To nSteps
  If errflag = 1 Then Exit For 'In the case the overflow error appears for the reading variable ("j") and the considered "cutoff"
  
  'Set the cells' range for calculating the average of currents:
- Set avRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(j - 21, 2), Worksheets(ActiveSheet.Name).Cells(j - 1, 2))
+ Set avRange = ActiveSheet.Range(ActiveSheet.Cells(j - 21, 2), ActiveSheet.Cells(j - 1, 2))
  'Write data:
- Worksheets(ActiveSheet.Name).Cells(4 + i, 12) = Application.WorksheetFunction.Average(avRange) * 1000 ''*1000' to change A to mA
+ ActiveSheet.Cells(4 + i, 12) = Application.WorksheetFunction.Average(avRange) * 1000 ''*1000' to change A to mA
 
  If (i + 1) = spStep Then 'Considering the special step
   j = j + (spaddt - Sstep) 'To ensure next diff is a step (for the specified special step)
@@ -188,8 +219,8 @@ Next k
 
 'Loop for determine Baseline-substracted Current [mA]:
  i = 2
- While Worksheets(ActiveSheet.Name).Cells(i, 2) <> 0
-  Worksheets(ActiveSheet.Name).Cells(i, 4) = Worksheets(ActiveSheet.Name).Cells(i, 3) - Worksheets(ActiveSheet.Name).Cells(4, 12)
+ While ActiveSheet.Cells(i, 2) <> 0
+  ActiveSheet.Cells(i, 4) = ActiveSheet.Cells(i, 3) - ActiveSheet.Cells(4, 12)
   i = i + 1
  Wend
 
@@ -204,22 +235,22 @@ Sub ctCCalcId()
 '=========================================================================
 
 'Read the time for the 1st addition (cells)
-add0 = Worksheets(ActiveSheet.Name).Cells(1, 12)
+add0 = ActiveSheet.Cells(1, 12)
 'Read the time between additions (each "?" cells)
-addt = Worksheets(ActiveSheet.Name).Cells(1, 13)
+addt = ActiveSheet.Cells(1, 13)
 
 'Because 1st step is not always readible:
 j = add0 + (addt - 3) 'Initialise reading variable (right before the 2nd sweep started)
 
 'Read data from the recording form (the active sheet)
-Dsteps = Worksheets(ActiveSheet.Name).Cells(2, 12) 'The number of additions specified in the form
+Dsteps = ActiveSheet.Cells(2, 12) 'The number of additions specified in the form
 For i = 1 To Dstep
 
  'Set the cells' range for calculating the average of currents:
- Set avRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(j - 21, 2), Worksheets(ActiveSheet.Name).Cells(j - 1, 2))
+ Set avRange = ActiveSheet.Range(ActiveSheet.Cells(j - 21, 2), ActiveSheet.Cells(j - 1, 2))
 
  'Write data:
- Worksheets(ActiveSheet.Name).Cells(3 + i, 12) = Application.WorksheetFunction.Average(avRange) * 1000 ''*1000' to change A to mA
+ ActiveSheet.Cells(3 + i, 12) = Application.WorksheetFunction.Average(avRange) * 1000 ''*1000' to change A to mA
  j = add0 + (i + 1) * addt - 3 'Going right before the next step (restarting "j" to the previous step)
 
 Next i
@@ -230,7 +261,15 @@ End Sub
 
 Sub DCalc()
 
-Worksheets(ActiveSheet.Name).Cells(3, 16) = "Drift (mA/s)"
+ActiveSheet.Cells(3, 18) = "Drift (µA/min)" '
+
+'Set the reading variable at the time for the first addition
+j0 = ActiveSheet.Cells(1, 12)
+'Read the time between additions (each "?" cells)
+addt = ActiveSheet.Cells(1, 13)
+
+'Starting at the first big step delivered (same as for response time):
+iStep = Val(InputBox("What is the first reasonably big step in the time trace? (1, 2, 3...):", "1st step?"))
 
 'In the case you waited (or missed to add) for a longer time in a step:
 spStep = Val(InputBox("Any special step? In affirmative case, write the step number (otherwise, type 0):", "Special step?")) '[!!!!!!]
@@ -238,48 +277,41 @@ If spStep <> 0 Then
  spaddt = Val(InputBox("Type the duration time for this step (s):", "Special addition time (s)"))
 End If
 
-'Read the time between additions (each "?" cells)
-addt = Worksheets(ActiveSheet.Name).Cells(1, 13)
-
 '===================== BASELINE DRIFT CALCULATION ========================
-j = Worksheets(ActiveSheet.Name).Cells(1, 12) 'Set the variable at the time for the first addition
-Id1 = Worksheets(ActiveSheet.Name).Cells(j - 5, 2)
-Id2 = Worksheets(ActiveSheet.Name).Cells(j - 5 - Application.WorksheetFunction.Round(0.8 * addt, 0), 2)
-drift = Abs((Id2 - Id1) / Application.WorksheetFunction.Round(0.8 * addt, 0)) 'Drift for the baseline step
+j = ActiveSheet.Cells(1, 12) 'Set the variable at the time for the first addition
+Id1 = ActiveSheet.Cells(j - 5, 3)
+Id2 = ActiveSheet.Cells(j - 5 - Application.WorksheetFunction.Round(0.8 * addt, 0), 3)
+dt = ActiveSheet.Cells(j - 5, 1) - ActiveSheet.Cells(j - 5 - Application.WorksheetFunction.Round(0.8 * addt, 0), 1) 'Time interval in [s]
+drift = Abs((Id2 - Id1) / dt) 'Drift for the baseline step
 'Write data:
-Worksheets(ActiveSheet.Name).Cells(4, 16) = drift * 1000 ''*1000' to change A to mA
+ActiveSheet.Cells(4, 18) = drift * 1000 * 60 ''*1000*60' to change [mA/s] to [µA/min]
 '=========================================================================
 
 '=====================SENS. DRIFT CALCULATION LOOP========================
-nSteps = Worksheets(ActiveSheet.Name).Cells(2, 12) 'The number of additions specified in the form
-For k = 1 To nSteps
+i = iStep
+While ActiveSheet.Cells(4 + i, 12) <> 0
  
- If k = spStep And spStep <> 0 Then 'Considering the special step
-  j = j + spaddt
-  
-  'Read data from the recording form (the active sheet)
-   'Id1 = Application.WorksheetFunction.Average(Worksheets(ActiveSheet.Name).Cells(j - 5, 2), Worksheets(ActiveSheet.Name).Cells(j - 25, 2))
-   'Id2 = Application.WorksheetFunction.Average(Worksheets(ActiveSheet.Name).Cells(j - 5 - Application.WorksheetFunction.Round(0.4 * spaddt, 0), 2), Worksheets(ActiveSheet.Name).Cells(j - Application.WorksheetFunction.Round(0.4 * spaddt, 0) + 20, 2))
-   Id1 = Worksheets(ActiveSheet.Name).Cells(j - 5, 2)
-   Id2 = Worksheets(ActiveSheet.Name).Cells(j - 5 - Application.WorksheetFunction.Round(0.4 * spaddt, 0), 2)
-   drift = Abs((Id2 - Id1) / Application.WorksheetFunction.Round(0.4 * spaddt, 0)) 'Drift for the current (sp)step
+    j = ActiveSheet.Cells(4 + i, 19)
+    If i >= spStep And spStep <> 0 Then 'Considering the special step
+        jf = j0 + (i - 1) * addt + spaddt
+    Else
+        jf = j0 + i * addt
+    End If
+    
+    Id1 = ActiveSheet.Cells(j - 5, 3)
+    Id2 = ActiveSheet.Cells(jf - 5, 3)
+    dt = ActiveSheet.Cells(jf - 5, 1) - ActiveSheet.Cells(j - 5, 1)
+   
+    drift = Abs((Id2 - Id1) / dt) 'Drift for the current step
  
- Else
-  j = j + addt
-
-  'Read data from the recording form (the active sheet)
-   'Id1 = Application.WorksheetFunction.Average(Worksheets(ActiveSheet.Name).Cells(j - 5, 2), Worksheets(ActiveSheet.Name).Cells(j - 25, 2))
-   'Id2 = Application.WorksheetFunction.Average(Worksheets(ActiveSheet.Name).Cells(j - 5 - Application.WorksheetFunction.Round(0.6 * addt, 0), 2), Worksheets(ActiveSheet.Name).Cells(j - Application.WorksheetFunction.Round(0.6 * addt, 0) + 20, 2))
-   Id1 = Worksheets(ActiveSheet.Name).Cells(j - 5, 2)
-   Id2 = Worksheets(ActiveSheet.Name).Cells(j - 5 - Application.WorksheetFunction.Round(0.6 * addt, 0), 2)
-   drift = Abs((Id2 - Id1) / Application.WorksheetFunction.Round(0.6 * addt, 0)) 'Drift for the current step
+    'Write data:
+    ActiveSheet.Cells(4 + i, 18) = drift * 1000 * 60 ''*1000*60' to change [mA/s] to [µA/min]
  
- End If
- 
- 'Write data:
- Worksheets(ActiveSheet.Name).Cells(4 + k, 16) = drift * 1000 ''*1000' to change A to mA
- 
-Next k
+    'DEBUGGING:
+    ActiveSheet.Cells(4 + i, 20) = jf
+    
+    i = i + 1
+Wend
 '===========================================================================
 
 End Sub
@@ -292,39 +324,39 @@ j = 30 'Initialise reading variable (at a reasonable value where sweep started)
 
 'Loop for determine diffs' cutoff value:
  i = 5
- While Worksheets(ActiveSheet.Name).Cells(i, 2) <> 0
-  Worksheets(ActiveSheet.Name).Cells(i, 1) = Abs(Worksheets(ActiveSheet.Name).Cells(i, 2) - Worksheets(ActiveSheet.Name).Cells(i + 1, 2))
+ While ActiveSheet.Cells(i, 2) <> 0
+  ActiveSheet.Cells(i, 1) = Abs(ActiveSheet.Cells(i, 2) - ActiveSheet.Cells(i + 1, 2))
   i = i + 1
  Wend
 
  'Set the cells' range for calculating the cutoff value for the diffs:
- Set coffRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(50, 1), Worksheets(ActiveSheet.Name).Cells(150, 1))
+ Set coffRange = ActiveSheet.Range(ActiveSheet.Cells(50, 1), ActiveSheet.Cells(150, 1))
  cutoff = WorksheetFunction.Max(coffRange) - 0.45 * WorksheetFunction.Max(coffRange) 'In order to reduce a little the max diff
  ActiveSheet.Columns(1).Range(Cells(5, 1), Cells(i, 1)).ClearContents 'Clear the generated diffs column
 
 
 'Read data from the recording form (Id-Vd)
-Dsteps = Worksheets(ActiveSheet.Name).Cells(2, 1) 'The number of Vd steps specified in the form
-Gsteps = Worksheets(ActiveSheet.Name).Cells(4, 1) 'The number of Vg steps specified in the form
+Dsteps = ActiveSheet.Cells(2, 1) 'The number of Vd steps specified in the form
+Gsteps = ActiveSheet.Cells(4, 1) 'The number of Vg steps specified in the form
 w = 17 'The start and counting writing variable
 
 For k = 1 To Dsteps
  For i = 1 To Gsteps
-  Id1 = Worksheets(ActiveSheet.Name).Cells(j, 2)
-  Id2 = Worksheets(ActiveSheet.Name).Cells(j + 1, 2)
+  Id1 = ActiveSheet.Cells(j, 2)
+  Id2 = ActiveSheet.Cells(j + 1, 2)
   diff = Abs(Id2 - Id1) 'Difference between previous and next current
 
   While diff < cutoff 'While no step, continue reading
-   Id1 = Worksheets(ActiveSheet.Name).Cells(j, 2)
-   Id2 = Worksheets(ActiveSheet.Name).Cells(j + 1, 2)
+   Id1 = ActiveSheet.Cells(j, 2)
+   Id2 = ActiveSheet.Cells(j + 1, 2)
    diff = Abs(Id2 - Id1)
    j = j + 1
   Wend
 
   'Set the cells' range for calculating the average of currents:
-  Set avRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(j - 21, 2), Worksheets(ActiveSheet.Name).Cells(j - 1, 2))
+  Set avRange = ActiveSheet.Range(ActiveSheet.Cells(j - 21, 2), ActiveSheet.Cells(j - 1, 2))
   'Write data to the plot cells:
-  Worksheets(ActiveSheet.Name).Cells(w + i, 7) = Application.WorksheetFunction.Average(avRange)
+  ActiveSheet.Cells(w + i, 7) = Application.WorksheetFunction.Average(avRange)
 
   'If i = (Gsteps - 1) Then 'Because the last step lasts 200s instead of 100s
    'j = j + 170 'In order to ensure next step
@@ -346,30 +378,30 @@ Sub gmCalcId_v3()
 Dim matchRange As String 'Declare the variable that will contain the range in which the max diff will be found by the MATCH Excel function
 
 'Initialise reading variable (at a reasonable value where sweep started, usually = ~205s for the end of the 0V step):
-t0 = Worksheets(ActiveSheet.Name).Cells(6, 6)
+t0 = ActiveSheet.Cells(6, 6)
 j = t0
 
 '=========================== DIFFS' VALUE LOOP =======================================
  i = 5 'Skip the cells for manually entering steps' data
- While Worksheets(ActiveSheet.Name).Cells(i, 2) <> 0
-  Worksheets(ActiveSheet.Name).Cells(i, 1) = Abs(Worksheets(ActiveSheet.Name).Cells(i, 2) - Worksheets(ActiveSheet.Name).Cells(i + 1, 2))
+ While ActiveSheet.Cells(i, 2) <> 0
+  ActiveSheet.Cells(i, 1) = Abs(ActiveSheet.Cells(i, 2) - ActiveSheet.Cells(i + 1, 2))
   i = i + 1
  Wend
 '=====================================================================================
   
 'Read data from the recording form (gmCalc)
-Dsteps = Worksheets(ActiveSheet.Name).Cells(2, 1) 'The number of Vd steps specified in the form
-Gsteps = Worksheets(ActiveSheet.Name).Cells(4, 1) 'The number of Vg steps specified in the form
+Dsteps = ActiveSheet.Cells(2, 1) 'The number of Vd steps specified in the form
+Gsteps = ActiveSheet.Cells(4, 1) 'The number of Vg steps specified in the form
 w = 17 'The start-and-counting writing variable
 
-If Worksheets(ActiveSheet.Name).Cells(18, 6) = 0 Then 'Check for the first Vg value considered
+If ActiveSheet.Cells(18, 6) = 0 Then 'Check for the first Vg value considered
     oFlag = True
 Else
     oFlag = False
 End If
 
-tDstep = Worksheets(ActiveSheet.Name).Cells(9, 6) - 7 'The duration (# of cells) value for a regular Vd step (~1000; "-7" to compensate human delay before sweeping)
-tStep = Worksheets(ActiveSheet.Name).Cells(10, 6) 'The duration (# of cells) value for each normal Vg step
+tDstep = ActiveSheet.Cells(9, 6) - 7 'The duration (# of cells) value for a regular Vd step (~1000; "-7" to compensate human delay before sweeping)
+tStep = ActiveSheet.Cells(10, 6) 'The duration (# of cells) value for each normal Vg step
 For k = 1 To Dsteps
  For i = 1 To Gsteps
 
@@ -384,20 +416,21 @@ For k = 1 To Dsteps
   'Set the cells' range for calculating the max value for the diffs | each Vg step:
   t0coff = j - 30 'The inferior time value for the first Vg step considered for the cutoff
   tfcoff = j + 40 'The superior time value for the first Vg step considered for the cutoff
-  Set coffRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(t0coff, 1), Worksheets(ActiveSheet.Name).Cells(tfcoff, 1))
-  j = Application.WorksheetFunction.Match(WorksheetFunction.Max(coffRange), coffRange, 0) + t0coff - 6
+  Set coffRange = ActiveSheet.Range(ActiveSheet.Cells(t0coff, 1), ActiveSheet.Cells(tfcoff, 1))
+  matchRange = "A" & t0coff & ":A" & tfcoff
+  j = Application.WorksheetFunction.Match(WorksheetFunction.Max(coffRange), ActiveSheet.Range(matchRange), 0) + t0coff - 6
   '"+ t0coff" because MATCH gives relative position from the start of the range, "-(5+1)" to reduce a little the max diff position ("1" because of "+1" included by "t0coff")
   ActiveSheet.Cells(i, 20 + k) = j + 5 'DEBUGGING
 '=====================================================================================
  
   'Set the cells' range for calculating the average of currents:
   If i = Gsteps Then
-   Set avRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(j - 21, 2), Worksheets(ActiveSheet.Name).Cells(j - 1, 2))
+   Set avRange = ActiveSheet.Range(ActiveSheet.Cells(j - 21, 2), ActiveSheet.Cells(j - 1, 2))
   Else
-   Set avRange = Worksheets(ActiveSheet.Name).Range(Worksheets(ActiveSheet.Name).Cells(j - 21, 2), Worksheets(ActiveSheet.Name).Cells(j - 1, 2))
+   Set avRange = ActiveSheet.Range(ActiveSheet.Cells(j - 21, 2), ActiveSheet.Cells(j - 1, 2))
   End If
   'Write data to the plot cells:
-  Worksheets(ActiveSheet.Name).Cells(w + i, 7) = Application.WorksheetFunction.Average(avRange)
+  ActiveSheet.Cells(w + i, 7) = Application.WorksheetFunction.Average(avRange)
   
  Next i
  w = w + i - 1 'To start the next loop right where it ended (before "Next i")
@@ -614,3 +647,93 @@ Sub RegStudy()
   
 End Sub
 
+'=========================================='
+
+Sub tRCalc()
+   
+If ActiveSheet.Cells(2, 1) <> 0 Then 'Correct time only if needed
+'=============================== CORRECTED TIME CALCULATION ==================================
+Dim raw_time As String 'Declare the variable for storaging the time string as recorded
+
+'For the very first sampling time:
+raw_time = ActiveSheet.Cells(2, 1) 'Store the as-recorded time string
+ActiveSheet.Cells(2, 1).NumberFormat = "hh:mm:ss.000" 'Set the right time format for the cell
+ActiveSheet.Cells(2, 1) = Left(raw_time, 8) & "." & Right(raw_time, 3) 'Rewrite the cell as a proper time string
+
+t0 = ActiveSheet.Cells(2, 1) 'Save the value for the very first sampling time
+ActiveSheet.Cells(2, 1) = 0 'Set the zero for the time in seconds
+ActiveSheet.Cells(2, 1).NumberFormat = "0.00" 'Set the cell format as float number
+
+i = 3
+While ActiveSheet.Cells(i, 1) <> 0
+
+    raw_time = ActiveSheet.Cells(i, 1) 'Store the as-recorded time string
+    ActiveSheet.Cells(i, 1).NumberFormat = "hh:mm:ss.000" 'Set the right time format for the cell
+    ActiveSheet.Cells(i, 1) = Left(raw_time, 8) & "." & Right(raw_time, 3) 'Rewrite the cell as a proper time string
+    
+    t1 = ActiveSheet.Cells(i, 1) 'Save the next sampling time
+    ActiveSheet.Cells(i, 1).NumberFormat = "0.00" 'Set the cell format as float number
+    ActiveSheet.Cells(i, 1) = 100000 * (t1 - t0) 'Write proper time in seconds
+    
+    i = i + 1
+Wend
+'=============================================================================================
+End If
+
+'================================ RESPONSE TIME CALCULATION ==================================
+Worksheets(ActiveSheet.Name).Cells(3, 17) = "Resp. time (s)"
+Worksheets(ActiveSheet.Name).Cells(3, 16) = "Tot. R. (mA)"
+
+'Starting at the first big step delivered:
+iStep = Val(InputBox("What is the first reasonably big step in the time trace? (1, 2, 3...):", "1st step?"))
+
+
+'In the case you waited (or missed to add) for a longer time in a step:
+spStep = Val(InputBox("Any special step? In affirmative case, write the step number (otherwise, type 0):", "Special step?")) '[!!!!!!]
+If spStep <> 0 Then
+ spaddt = Val(InputBox("Type the duration time for this step (s):", "Special addition time (s)"))
+End If
+
+'Set the reading variable at the time for the first addition
+j0 = Worksheets(ActiveSheet.Name).Cells(1, 12)
+'Read the time between additions (each "?" cells)
+addt = Worksheets(ActiveSheet.Name).Cells(1, 13)
+
+    '====================== CALCULATION LOOOP ===================
+    i = iStep
+    While Worksheets(ActiveSheet.Name).Cells(4 + i, 12) <> 0
+    
+        'Set the value for the time trace reading variable and initial time for each add.:
+        If i >= spStep And spStep <> 0 Then 'Considering the special step
+            j = j0 + (i - 2) * addt + spaddt + 1 '"+1" because of the title row
+        Else
+            j = j0 + (i - 1) * addt + 1 '"+1" because of the title row
+        End If
+        t0 = ActiveSheet.Cells(j, 1)
+        
+        'Calculate the tot. resp. for the selected addition (based on avg.) and the cutoff (90%) value for resp. time:
+        dI = Abs(Worksheets(ActiveSheet.Name).Cells(3 + i, 12) - Worksheets(ActiveSheet.Name).Cells(4 + i, 12))
+        ActiveSheet.Cells(4 + i, 16) = dI 'Write the value for the Tot. Resp. (mA)
+        dI = 0.9 * dI
+        
+        'Look for "stable" currents above the cutoff value:
+        dI1 = Abs(Worksheets(ActiveSheet.Name).Cells(3 + i, 12) - ActiveSheet.Cells(j, 3))
+        dI5 = Abs(Worksheets(ActiveSheet.Name).Cells(3 + i, 12) - ActiveSheet.Cells(j + 4, 3))
+        While dI1 < dI Or dI5 < dI
+            j = j + 1
+            dI1 = Abs(Worksheets(ActiveSheet.Name).Cells(3 + i, 12) - ActiveSheet.Cells(j, 3))
+            dI5 = Abs(Worksheets(ActiveSheet.Name).Cells(3 + i, 12) - ActiveSheet.Cells(j + 4, 3))
+        Wend
+        
+        'Calculate and write the value of response time:
+        ActiveSheet.Cells(4 + i, 17) = ActiveSheet.Cells(j, 1) - t0
+        
+        'DEBUGGING and Cells info for Drift calc.:
+        ActiveSheet.Cells(4 + i, 19) = j
+        
+        i = i + 1
+    Wend
+    '============================================================
+'=============================================================================================
+
+End Sub
