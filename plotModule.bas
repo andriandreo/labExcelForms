@@ -1,9 +1,10 @@
 Attribute VB_Name = "plotModule"
+
 '=====================CREDITS======================'
 'AUTHOR: Andres Alberto Andreo Acosta'
 'GitHub: https://github.com/andriandreo'
-'DATE (DD/MM/YY): 26/05/22'
-'Version: v3.0'
+'DATE (DD/MM/YY): 27/09/22'
+'Version: v3.1'
 'LICENSE: MIT License'
 '================================================='
 
