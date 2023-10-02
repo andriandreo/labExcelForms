@@ -5,6 +5,7 @@
 <br>
 <a href="./LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
 <a href="https://github.com/andriandreo/labExcelForms/releases"><img src="https://img.shields.io/github/v/release/andriandreo/labExcelForms"></a>
+<a href="https://doi.org/10.5281/zenodo.5472104"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.5472104.svg" alt="DOI"></a>
 </p>
 
 The code includes several Excel VBA Macros to calculate some of the figures of merit proper of the transistors. The sensing test is aimed to study the sensitivity using H<sub>2</sub>O<sub>2</sub> as the analyte.
