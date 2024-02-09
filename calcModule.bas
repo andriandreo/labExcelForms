@@ -3,8 +3,8 @@ Attribute VB_Name = "calcModule"
 '=====================CREDITS======================'
 'AUTHOR: Andres Alberto Andreo Acosta'
 'GitHub: https://github.com/andriandreo'
-'DATE (DD/MM/YY): 27/09/22'
-'Version: v3.1'
+'DATE (DD/MM/YY): 09/02/24'
+'Version: v3.2'
 'LICENSE: MIT License'
 '================================================='
 
@@ -289,6 +289,7 @@ ActiveSheet.Cells(4, 18) = drift * 1000 * 60 ''*1000*60' to change [mA/s] to [µA
 
 '=====================SENS. DRIFT CALCULATION LOOP========================
 i = iStep
+If addt < 400 Then Jadj = 2 Else Jadj = 5 'Set proper back-adjustment for reading variable to calculation
 While ActiveSheet.Cells(4 + i, 12) <> 0
  
     j = ActiveSheet.Cells(4 + i, 19)
@@ -298,9 +299,9 @@ While ActiveSheet.Cells(4 + i, 12) <> 0
         jf = j0 + i * addt
     End If
     
-    Id1 = ActiveSheet.Cells(j - 5, 3)
-    Id2 = ActiveSheet.Cells(jf - 5, 3)
-    dt = ActiveSheet.Cells(jf - 5, 1) - ActiveSheet.Cells(j - 5, 1)
+    Id1 = ActiveSheet.Cells(j - Jadj, 3)
+    Id2 = ActiveSheet.Cells(jf - Jadj, 3)
+    dt = ActiveSheet.Cells(jf - Jadj, 1) - ActiveSheet.Cells(j - Jadj, 1)
    
     drift = Abs((Id2 - Id1) / dt) 'Drift for the current step
  
@@ -651,29 +652,43 @@ End Sub
 
 Sub tRCalc()
    
-If ActiveSheet.Cells(2, 1) <> 0 Then 'Correct time only if needed
+ActiveSheet.Cells(1, 1) = "Time (s)"
+If (ActiveSheet.Cells(2, 1) <> 0 And Mid(ActiveSheet.Cells(2, 1), 3, 1) = ":") Then 'Correct time only if needed
 '=============================== CORRECTED TIME CALCULATION ==================================
 Dim raw_time As String 'Declare the variable for storaging the time string as recorded
 
 'For the very first sampling time:
 raw_time = ActiveSheet.Cells(2, 1) 'Store the as-recorded time string
-ActiveSheet.Cells(2, 1).NumberFormat = "hh:mm:ss.000" 'Set the right time format for the cell
-ActiveSheet.Cells(2, 1) = Left(raw_time, 8) & "." & Right(raw_time, 3) 'Rewrite the cell as a proper time string
-
-t0 = ActiveSheet.Cells(2, 1) 'Save the value for the very first sampling time
+If Mid(raw_time, 9, 1) = ":" Then
+    corr_time = Left(raw_time, 8) & "." & Right(raw_time, 3) 'Rewrite as a proper time string
+ElseIf Right(raw_time, 1) = ":" Then
+    corr_time = Left(raw_time, 10) & "00" 'Rewrite as a proper time string
+End If
+    
+t0_HH = Left(corr_time, 2) * 3600 'Convert to seconds
+t0_MM = Mid(corr_time, 4, 2) * 60 'Convert to seconds
+t0_SS = Right(corr_time, 6) 'Already in seconds
+t0 = Val(t0_HH) + Val(t0_MM) + Val(t0_SS) 'Save the value for the very first sampling time
 ActiveSheet.Cells(2, 1) = 0 'Set the zero for the time in seconds
 ActiveSheet.Cells(2, 1).NumberFormat = "0.00" 'Set the cell format as float number
 
 i = 3
 While ActiveSheet.Cells(i, 1) <> 0
-
-    raw_time = ActiveSheet.Cells(i, 1) 'Store the as-recorded time string
-    ActiveSheet.Cells(i, 1).NumberFormat = "hh:mm:ss.000" 'Set the right time format for the cell
-    ActiveSheet.Cells(i, 1) = Left(raw_time, 8) & "." & Right(raw_time, 3) 'Rewrite the cell as a proper time string
     
-    t1 = ActiveSheet.Cells(i, 1) 'Save the next sampling time
+    raw_time = ActiveSheet.Cells(i, 1) 'Store the as-recorded time string
+
+    If Mid(raw_time, 9, 1) = ":" Then
+        corr_time = Left(raw_time, 8) & "." & Right(raw_time, 3) 'Rewrite as a proper time string
+    ElseIf Right(raw_time, 1) = ":" Then
+        corr_time = Left(raw_time, 10) & "00" 'Rewrite as a proper time string
+    End If
+    
+    t1_HH = Left(corr_time, 2) * 3600 'Convert to seconds
+    t1_MM = Mid(corr_time, 4, 2) * 60 'Convert to seconds
+    t1_SS = Right(corr_time, 6) 'Already in seconds
+    t1 = Val(t1_HH) + Val(t1_MM) + Val(t1_SS) 'Save the next (current) sampling time
     ActiveSheet.Cells(i, 1).NumberFormat = "0.00" 'Set the cell format as float number
-    ActiveSheet.Cells(i, 1) = 100000 * (t1 - t0) 'Write proper time in seconds
+    ActiveSheet.Cells(i, 1) = (t1 - t0) 'Calculate the time difference and write in seconds
     
     i = i + 1
 Wend
@@ -700,6 +715,7 @@ j0 = Worksheets(ActiveSheet.Name).Cells(1, 12)
 addt = Worksheets(ActiveSheet.Name).Cells(1, 13)
 
     '====================== CALCULATION LOOOP ===================
+    If addt < 400 Then coffPCENT = 0.95 Else coffPCENT = 0.9 'Set appropriate cutoff % to max tot. resp.
     i = iStep
     While Worksheets(ActiveSheet.Name).Cells(4 + i, 12) <> 0
     
@@ -711,10 +727,10 @@ addt = Worksheets(ActiveSheet.Name).Cells(1, 13)
         End If
         t0 = ActiveSheet.Cells(j, 1)
         
-        'Calculate the tot. resp. for the selected addition (based on avg.) and the cutoff (90%) value for resp. time:
+        'Calculate the tot. resp. for the selected addition (based on avg.) and the cutoff (90~95%) value for resp. time:
         dI = Abs(Worksheets(ActiveSheet.Name).Cells(3 + i, 12) - Worksheets(ActiveSheet.Name).Cells(4 + i, 12))
         ActiveSheet.Cells(4 + i, 16) = dI 'Write the value for the Tot. Resp. (mA)
-        dI = 0.9 * dI
+        dI = coffPCENT * dI
         
         'Look for "stable" currents above the cutoff value:
         dI1 = Abs(Worksheets(ActiveSheet.Name).Cells(3 + i, 12) - ActiveSheet.Cells(j, 3))
